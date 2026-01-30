@@ -105,7 +105,7 @@ class TemplateUtility
         /* CATS Logo */
         echo '<table cellspacing="0" cellpadding="0" style="margin: 0px; padding: 0px; float: left;">', "\n";
         echo '<tr>', "\n";
-        echo '<td rowspan="2"><img src="images/applicationLogo.jpg" border="0" alt="CATS Applicant Tracking System" /></td>', "\n";
+        echo '<td rowspan="2"><img src="images/applicationLogo.png" border="0" alt="Wigoh Recruiter" style="max-height: 55px; width: auto;" /></td>', "\n";
         echo '</tr>', "\n";
         echo '</table>', "\n";
 
@@ -827,8 +827,7 @@ class TemplateUtility
        */
 
         echo '<div class="footerBlock">', "\n";
-        echo '<p id="footerText">OpenCATS Version ', CATS_VERSION, $buildString,
-             '. <span id="toolbarVersion"></span>Powered by <a href="http://www.opencats.org/"><strong>OpenCATS</strong></a>.</p>', "\n";
+        echo '<p id="footerText">Powered by <a href="https://wigoh.com/"><strong>Wigoh</strong></a> | <a href="http://www.opencats.org/">OpenCATS</a></p>', "\n";
         echo '<span id="footerResponse">Server Response Time: ', $loadTime, ' seconds.</span><br />';
         echo '<span id="footerCopyright">', COPYRIGHT_HTML, '</span>', "\n";
         if (!eval(Hooks::get('TEMPLATEUTILITY_SHOWPRIVACYPOLICY'))) return;

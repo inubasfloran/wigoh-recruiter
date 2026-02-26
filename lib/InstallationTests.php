@@ -422,11 +422,11 @@ class InstallationTests
         );
 
         /* Check CREATE TABLE permissions. */
-        $queryResult = @mysqli_query($db, 'CREATE TABLE `testtable` (`id` int(11) NOT NULL default \'0\') ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;');
+        $queryResult = @mysqli_query($db, 'CREATE TABLE `testtable` (`id` int(11) NOT NULL default \'0\') ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;');
         if (!$queryResult)
         {
             mysqli_query($db, 'DROP TABLE testtable');
-            $queryResult = @mysqli_query($db, 'CREATE TABLE `testtable` (`id` int(11) NOT NULL default \'0\') ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;');
+            $queryResult = @mysqli_query($db, 'CREATE TABLE `testtable` (`id` int(11) NOT NULL default \'0\') ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;');
         }
         if (!$queryResult)
         {

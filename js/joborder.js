@@ -123,6 +123,7 @@ function CompanyDepartments_populateJO(companyID, sessionCookie)
 function checkPublic(e)
 {
     var styleSheet = document.getElementById('displayQuestionnaires').style;
+    var screenerRow = document.getElementById('displayScreenerQuestions');
 
     if (e.checked)
     {
@@ -130,12 +131,20 @@ function checkPublic(e)
         {
             styleSheet.display = 'table-row';
         }
+        if (screenerRow)
+        {
+            screenerRow.style.display = 'table-row';
+        }
     }
     else
     {
         if (styleSheet.display)
         {
             styleSheet.display = 'none';
+        }
+        if (screenerRow)
+        {
+            screenerRow.style.display = 'none';
         }
     }
 }

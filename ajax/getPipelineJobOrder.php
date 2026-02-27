@@ -28,6 +28,7 @@
  */
 
 include_once(LEGACY_ROOT . '/lib/Pipelines.php');
+include_once(LEGACY_ROOT . '/lib/Lifecycle.php');
 include_once(LEGACY_ROOT . '/lib/TemplateUtility.php');
 include_once(LEGACY_ROOT . '/lib/StringUtility.php');
 include_once(LEGACY_ROOT . '/lib/CATSUtility.php');
@@ -56,10 +57,16 @@ $sortDirection  = trim(htmlspecialchars($_REQUEST['sortDirection']));
 $indexFile      = trim(htmlspecialchars($_REQUEST['indexFile']));
 $isPopup        = $_REQUEST['isPopup'] == 1 ? true : false;
 
+$stageFilter = isset($_REQUEST['stageFilter']) ? intval($_REQUEST['stageFilter']) : 0;
+
 $_SESSION['CATS']->setPipelineEntriesPerPage($entriesPerPage);
 
 $jobOrders = new JobOrders($siteID);
 $jobOrdersData = $jobOrders->get($jobOrderID);
+
+/* Get lifecycle stage counts for tracker bar. */
+$lifecycle = new Lifecycle($siteID);
+$lifecycleStages = $lifecycle->getStagesWithCounts($jobOrderID);
 
 /* Get an array of the pipeline data. */
 $pipelines = new Pipelines($siteID);
@@ -111,6 +118,14 @@ foreach ($pipelinesRS as $rowIndex => $row)
         $pipelinesRS[$rowIndex]['candidateJobOrderID'],
         $_SESSION['CATS']->getCookie()
     );
+}
+
+/* Apply lifecycle stage filter if active. */
+if ($stageFilter > 0)
+{
+    $pipelinesRS = array_values(array_filter($pipelinesRS, function($row) use ($stageFilter) {
+        return isset($row['lifecycleStageID']) && intval($row['lifecycleStageID']) == $stageFilter;
+    }));
 }
 
 /* Sort the data. */
@@ -199,6 +214,25 @@ if (!eval(Hooks::get('JO_AJAX_GET_PIPELINE'))) return;
 
     document.getElementById('ajaxPipelineNavigation').innerHTML = s;
 </script>
+    <div class="lifecycle-tracker-bar">
+        <?php foreach ($lifecycleStages as $stageData): ?>
+            <?php $isActive = ($stageFilter > 0 && $stageFilter == $stageData['stageID']); ?>
+            <span class="lifecycle-stage-pill<?php if ($isActive) echo ' active'; ?>"
+                  style="border-color: <?php echo($stageData['colorHex']); ?>;<?php if ($isActive) echo ' background-color: ' . $stageData['colorHex'] . '; color: #fff;'; ?>"
+                  onclick="PipelineJobOrder_filterByStage(<?php echo($stageData['stageID']); ?>, <?php echo($jobOrderID); ?>, 0, <?php echo($entriesPerPage); ?>, '<?php echo($sortBy); ?>', '<?php echo($sortDirection); ?>', <?php if ($isPopup) echo(1); else echo(0); ?>, 'ajaxPipelineTable', '<?php echo($_SESSION['CATS']->getCookie()); ?>', 'ajaxPipelineTableIndicator', '<?php echo($indexFile); ?>');">
+                <?php echo(htmlspecialchars($stageData['stageName'])); ?>
+                <span class="lifecycle-pill-count" style="background-color: <?php echo($stageData['colorHex']); ?>;">
+                    <?php echo(intval($stageData['count'])); ?>
+                </span>
+            </span>
+        <?php endforeach; ?>
+        <?php if ($stageFilter > 0): ?>
+            <span class="lifecycle-stage-pill lifecycle-show-all"
+                  onclick="PipelineJobOrder_filterByStage(0, <?php echo($jobOrderID); ?>, 0, <?php echo($entriesPerPage); ?>, '<?php echo($sortBy); ?>', '<?php echo($sortDirection); ?>', <?php if ($isPopup) echo(1); else echo(0); ?>, 'ajaxPipelineTable', '<?php echo($_SESSION['CATS']->getCookie()); ?>', 'ajaxPipelineTableIndicator', '<?php echo($indexFile); ?>');">
+                Show All
+            </span>
+        <?php endif; ?>
+    </div>
     <table class="notsortable" id="pipelineTable" width="100%">
     <tr>
         <th></th>
@@ -286,7 +320,18 @@ if (!eval(Hooks::get('JO_AJAX_GET_PIPELINE'))) return;
             <td valign="top" nowrap="nowrap"><?php echo(htmlspecialchars($pipelinesData['state'])); ?></td>
             <td valign="top" nowrap="nowrap"><?php echo(htmlspecialchars($pipelinesData['dateCreated'])); ?></td>
             <td valign="top" nowrap="nowrap"><?php echo(htmlspecialchars($pipelinesData['addedByAbbrName'])); ?></td>
-            <td valign="top" nowrap="nowrap"><?php echo(htmlspecialchars($pipelinesData['status'])); ?></td>
+            <td valign="top" nowrap="nowrap">
+                <?php if (!empty($pipelinesData['lifecycleStageName'])): ?>
+                    <span class="lifecycle-stage-badge" style="background-color: <?php echo($pipelinesData['lifecycleStageColor']); ?>;">
+                        <?php echo(htmlspecialchars($pipelinesData['lifecycleStageName'])); ?>
+                    </span>
+                    <?php if (!empty($pipelinesData['lifecycleSubstatusName'])): ?>
+                        <br/><span class="lifecycle-substatus-label"><?php echo(htmlspecialchars($pipelinesData['lifecycleSubstatusName'])); ?></span>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <?php echo(htmlspecialchars($pipelinesData['status'])); ?>
+                <?php endif; ?>
+            </td>
             <td valign="top"><?php echo($pipelinesData['lastActivity']); ?></td>
 <?php if (!$isPopup): ?>
             <td align="center" nowrap="nowrap">

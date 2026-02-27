@@ -1,5 +1,5 @@
 <?php /* $Id: Add.tpl 3810 2007-12-05 19:13:25Z brian $ */ ?>
-<?php TemplateUtility::printHeader('Job Orders', array('modules/joborders/validator.js',  'js/company.js', 'js/sweetTitles.js', 'js/suggest.js', 'js/joborder.js', 'js/lib.js', 'js/listEditor.js', 'vendor/ckeditor/ckeditor/ckeditor.js', 'js/ckeditor-manager.js')); ?>
+<?php TemplateUtility::printHeader('Job Orders', array('modules/joborders/validator.js',  'js/company.js', 'js/sweetTitles.js', 'js/suggest.js', 'js/joborder.js', 'js/lib.js', 'js/listEditor.js', 'js/locationEditor.js', 'vendor/ckeditor/ckeditor/ckeditor.js', 'js/ckeditor-manager.js')); ?>
 <?php TemplateUtility::printHeaderBlock(); ?>
 <?php TemplateUtility::printTabs($this->active, $this->subActive); ?>
     <div id="main">
@@ -140,34 +140,37 @@
 
                         <tr>
                             <td class="tdVertical">
-                                <label id="cityLabel" for="city">City:</label>
+                                <label id="locationsLabel">Location(s):</label>
                             </td>
-                            <td class="tdData">
-                                <?php if ($this->selectedCompanyID !== false): ?>
-                                    <input type="text" tabindex="4" class="inputbox" id="city" name="city" value="<?php $this->_($this->selectedCompanyLocation['city']); ?>" style="width: 150px;" />&nbsp;*
-                                <?php else: ?>
-                                    <input type="text" tabindex="4" class="inputbox" id="city" name="city" style="width: 150px;" />&nbsp;*
-                                <?php endif; ?>
-                            </td>
+                            <td class="tdData" colspan="3">
+                                <!-- Hidden fields for legacy compatibility and location data -->
+                                <input type="hidden" id="city" name="city" value="<?php if ($this->selectedCompanyID !== false): ?><?php $this->_($this->selectedCompanyLocation['city']); ?><?php endif; ?>" />
+                                <input type="hidden" id="state" name="state" value="<?php if ($this->selectedCompanyID !== false): ?><?php $this->_($this->selectedCompanyLocation['state']); ?><?php endif; ?>" />
+                                <input type="hidden" id="locationsJSON" name="locationsJSON" value="" />
 
-                                                        <td class="tdVertical">
-                                <label id="salaryLabel" for="salary">Salary:</label>
-                            </td>
-                            <td class="tdData">
-                                <input type="text" tabindex="13" class="inputbox" id="salary" name="salary" style="width: 150px;" <?php if(isset($this->jobOrderSourceRS['salary'])): ?>value="<?php $this->_($this->jobOrderSourceRS['salary']); ?>"<?php endif; ?>/>
+                                <!-- Location list -->
+                                <div id="locationEditorContainer" style="margin-bottom: 10px;">
+                                    <div id="locationList" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+
+                                    <!-- Add location inputs -->
+                                    <div style="margin-top: 5px;">
+                                        <input type="text" id="newLocationCity" class="inputbox" placeholder="City" style="width: 120px;" />
+                                        <input type="text" id="newLocationState" class="inputbox" placeholder="State" style="width: 80px; margin-left: 5px;" />
+                                        <input type="button" value="Add Location" class="button" onclick="LocationEditor.addLocation();" style="margin-left: 5px;" />
+                                    </div>
+                                    <div style="font-size: 11px; color: #666; margin-top: 3px;">
+                                        First location is the primary location. At least one location is required.
+                                    </div>
+                                </div>
                             </td>
                         </tr>
 
                         <tr>
                             <td class="tdVertical">
-                                <label id="stateLabel" for="state">State:</label>
+                                <label id="salaryLabel" for="salary">Salary:</label>
                             </td>
                             <td class="tdData">
-                                <?php if ($this->selectedCompanyID !== false): ?>
-                                    <input type="text" tabindex="5" class="inputbox" id="state" name="state" value="<?php $this->_($this->selectedCompanyLocation['state']); ?>" style="width: 150px;" />&nbsp;*
-                                <?php else: ?>
-                                    <input type="text" tabindex="5" class="inputbox" id="state" name="state" style="width: 150px;" />&nbsp;*
-                                <?php endif; ?>
+                                <input type="text" tabindex="13" class="inputbox" id="salary" name="salary" style="width: 150px;" <?php if(isset($this->jobOrderSourceRS['salary'])): ?>value="<?php $this->_($this->jobOrderSourceRS['salary']); ?>"<?php endif; ?>/>
                             </td>
 
                             <td class="tdVertical">
@@ -301,6 +304,20 @@
                             </td>
                             <?php endif; ?>
                         </tr>
+
+                        <tr id="displayScreenerQuestions" style="display: none;">
+                            <td class="tdVertical">
+                                <label for="screenerQuestions">Indeed Screener Questions:</label>
+                            </td>
+                            <td class="tdData">
+                                <textarea name="screenerQuestions" id="screenerQuestions" rows="10" style="width: 500px; font-family: monospace; font-size: 12px;"></textarea>
+                                <br />
+                                <span style="font-size: 11px; color: #666;">
+                                    JSON format for Indeed Apply screener questions.
+                                    <a href="javascript:void(0);" onclick="document.getElementById('screenerQuestions').value = JSON.stringify({schemaVersion:'1.0',screenerQuestions:[{id:'willing_to_relocate',type:'select',question:'Are you willing to relocate?',required:true,options:[{id:'yes',label:'Yes'},{id:'no',label:'No'}]},{id:'years_experience',type:'text',format:'integer',question:'How many years of experience do you have?',required:true,min:'0',max:'99'}]}, null, 2);">Insert template</a>
+                                </span>
+                            </td>
+                        </tr>
                     </table>
                     <input type="submit" tabindex="20" class="button" name="submit" value="Add Job Order" />&nbsp;
                     <input type="reset"  tabindex="21" class="button" name="reset"  value="Reset" />&nbsp;
@@ -314,6 +331,17 @@
                 <script type="text/javascript">
                     document.addJobOrderForm.title.focus();
                     <?php if (isset($this->jobOrderSourceRS['companyID'])): ?>updateCompanyData('<?php echo($this->sessionCookie); ?>');<?php endif; ?>
+
+                    // Initialize location editor
+                    <?php if ($this->selectedCompanyID !== false): ?>
+                        LocationEditor.init([], '<?php $this->_($this->selectedCompanyLocation['city']); ?>', '<?php $this->_($this->selectedCompanyLocation['state']); ?>');
+                    <?php elseif (isset($this->jobOrderSourceRS['locationsJSON']) && !empty($this->jobOrderSourceRS['locationsJSON'])): ?>
+                        LocationEditor.init(<?php echo $this->jobOrderSourceRS['locationsJSON']; ?>, '', '');
+                    <?php elseif (isset($this->jobOrderSourceRS['city']) || isset($this->jobOrderSourceRS['state'])): ?>
+                        LocationEditor.init([], '<?php if(isset($this->jobOrderSourceRS['city'])) $this->_($this->jobOrderSourceRS['city']); ?>', '<?php if(isset($this->jobOrderSourceRS['state'])) $this->_($this->jobOrderSourceRS['state']); ?>');
+                    <?php else: ?>
+                        LocationEditor.init([], '', '');
+                    <?php endif; ?>
                 </script>
 
             <?php endif; ?>

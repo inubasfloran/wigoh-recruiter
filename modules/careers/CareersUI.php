@@ -790,6 +790,50 @@ class CareersUI extends UserInterface
                 $template['Content'] = str_replace('<submit', '<input type="submit" class="submitButton"', $template['Content']) . '</form>';
             }
         }
+        else if ($p == 'indeedQuestions')
+        {
+            /* Serve screener questions JSON for Indeed Apply. */
+            $jobID = isset($_GET['ID']) ? intval($_GET['ID']) : 0;
+            if ($jobID <= 0)
+            {
+                header('HTTP/1.1 400 Bad Request');
+                header('Content-Type: application/json');
+                echo json_encode(array('error' => 'Invalid job order ID'));
+                return;
+            }
+
+            $jobOrderData = $jobOrders->get($jobID);
+            if (!isset($jobOrderData['public']) || $jobOrderData['public'] == 0)
+            {
+                header('HTTP/1.1 404 Not Found');
+                header('Content-Type: application/json');
+                echo json_encode(array('error' => 'Job order not found'));
+                return;
+            }
+
+            $screenerJSON = isset($jobOrderData['screenerQuestions']) ? $jobOrderData['screenerQuestions'] : '';
+            if (empty($screenerJSON))
+            {
+                /* Return empty questions array if none configured. */
+                header('Content-Type: application/json');
+                echo json_encode(array());
+                return;
+            }
+
+            /* Validate it's proper JSON before serving. */
+            $decoded = json_decode($screenerJSON);
+            if ($decoded === null && json_last_error() !== JSON_ERROR_NONE)
+            {
+                header('HTTP/1.1 500 Internal Server Error');
+                header('Content-Type: application/json');
+                echo json_encode(array('error' => 'Invalid screener questions configuration'));
+                return;
+            }
+
+            header('Content-Type: application/json');
+            echo $screenerJSON;
+            return;
+        }
         else if ($p == 'showJob')
         {
             $template['Content'] = $template['Content - Job Details'];
@@ -832,6 +876,51 @@ class CareersUI extends UserInterface
             $template['Content'] = str_replace('<rate>',         nl2br($jobOrderData['maxRate']), $template['Content']);
             $template['Content'] = str_replace('<salary>',       nl2br($jobOrderData['salary']), $template['Content']);
             $template['Content'] = str_replace('<daysOld>',      nl2br($jobOrderData['daysOld']), $template['Content']);
+
+            /* Handle multiple locations display */
+            $locationsHtml = '';
+            if (isset($jobOrderData['locations']) && is_array($jobOrderData['locations']) && count($jobOrderData['locations']) > 0)
+            {
+                $locationParts = array();
+                foreach ($jobOrderData['locations'] as $location)
+                {
+                    $locStr = '';
+                    if (!empty($location['city']) && !empty($location['state']))
+                    {
+                        $locStr = htmlspecialchars($location['city']) . ', ' . htmlspecialchars($location['state']);
+                    }
+                    else if (!empty($location['city']))
+                    {
+                        $locStr = htmlspecialchars($location['city']);
+                    }
+                    else if (!empty($location['state']))
+                    {
+                        $locStr = htmlspecialchars($location['state']);
+                    }
+                    if (!empty($locStr))
+                    {
+                        $locationParts[] = $locStr;
+                    }
+                }
+                $locationsHtml = implode('<br />', $locationParts);
+            }
+            else
+            {
+                /* Fallback to single city/state */
+                if (!empty($jobOrderData['city']) && !empty($jobOrderData['state']))
+                {
+                    $locationsHtml = htmlspecialchars($jobOrderData['city']) . ', ' . htmlspecialchars($jobOrderData['state']);
+                }
+                else if (!empty($jobOrderData['city']))
+                {
+                    $locationsHtml = htmlspecialchars($jobOrderData['city']);
+                }
+                else if (!empty($jobOrderData['state']))
+                {
+                    $locationsHtml = htmlspecialchars($jobOrderData['state']);
+                }
+            }
+            $template['Content'] = str_replace('<locations>', $locationsHtml, $template['Content']);
 
             $isRegistered = $this->isCandidateRegistered($siteID, $template['Content - Candidate Registration']);
 

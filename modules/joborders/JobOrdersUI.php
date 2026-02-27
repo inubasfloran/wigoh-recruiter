@@ -768,6 +768,19 @@ class JobOrdersUI extends UserInterface
         $salary      = $this->getSanitisedInput('salary', $_POST);
         $description = $this->getTrimmedInput('description', $_POST);
         $notes       = $this->getSanitisedInput('notes', $_POST);
+        $locationsJSON = $this->getTrimmedInput('locationsJSON', $_POST);
+
+        /* Handle multi-location: if locationsJSON is provided, extract primary location for validation */
+        if (!empty($locationsJSON))
+        {
+            $locations = json_decode($locationsJSON, true);
+            if (is_array($locations) && !empty($locations))
+            {
+                /* Use first location as primary for backwards compatibility */
+                $city = isset($locations[0]['city']) ? $locations[0]['city'] : '';
+                $state = isset($locations[0]['state']) ? $locations[0]['state'] : '';
+            }
+        }
 
         /* Bail out if any of the required fields are empty. */
         if (empty($title) || empty($type) || empty($city) || empty($state))
@@ -782,7 +795,7 @@ class JobOrdersUI extends UserInterface
             $title, $companyID, $contactID, $description, $notes, $duration,
             $maxRate, $type, $isHot, $isPublic, $openings, $companyJobID,
             $salary, $city, $state, $startDate, $this->_userID, $recruiter,
-            $owner, $department, $questionnaireID
+            $owner, $department, $questionnaireID, $locationsJSON
         );
 
         if ($jobOrderID <= 0)
@@ -792,6 +805,13 @@ class JobOrdersUI extends UserInterface
 
         /* Update extra fields. */
         $jobOrders->extraFields->setValuesOnEdit($jobOrderID);
+
+        /* Save screener questions if provided. */
+        $screenerQuestions = $this->getTrimmedInput('screenerQuestions', $_POST);
+        if (!empty($screenerQuestions))
+        {
+            $jobOrders->setScreenerQuestions($jobOrderID, $screenerQuestions);
+        }
 
         if (!eval(Hooks::get('JO_ON_ADD_POST'))) return;
 
@@ -1112,6 +1132,19 @@ class JobOrdersUI extends UserInterface
         $salary      = $this->getSanitisedInput('salary', $_POST);
         $description = $this->getTrimmedInput('description', $_POST);
         $notes       = $this->getSanitisedInput('notes', $_POST);
+        $locationsJSON = $this->getTrimmedInput('locationsJSON', $_POST);
+
+        /* Handle multi-location: if locationsJSON is provided, extract primary location for validation */
+        if (!empty($locationsJSON))
+        {
+            $locations = json_decode($locationsJSON, true);
+            if (is_array($locations) && !empty($locations))
+            {
+                /* Use first location as primary for backwards compatibility */
+                $city = isset($locations[0]['city']) ? $locations[0]['city'] : '';
+                $state = isset($locations[0]['state']) ? $locations[0]['state'] : '';
+            }
+        }
 
         /* Bail out if any of the required fields are empty. */
         if (empty($title) || empty($type) || empty($city) || empty($state))
@@ -1124,13 +1157,17 @@ class JobOrdersUI extends UserInterface
         if (!$jobOrders->update($jobOrderID, $title, $companyJobID, $companyID, $contactID,
             $description, $notes, $duration, $maxRate, $type, $isHot,
             $openings, $openingsAvailable, $salary, $city, $state, $startDate, $status, $recruiter,
-            $owner, $public, $email, $emailAddress, $department, $questionnaireID))
+            $owner, $public, $email, $emailAddress, $department, $questionnaireID, $locationsJSON))
         {
             CommonErrors::fatal(COMMONERROR_RECORDERROR, $this, 'Failed to update job order.');
         }
 
         /* Update extra fields. */
         $jobOrders->extraFields->setValuesOnEdit($jobOrderID);
+
+        /* Save screener questions. */
+        $screenerQuestions = $this->getTrimmedInput('screenerQuestions', $_POST);
+        $jobOrders->setScreenerQuestions($jobOrderID, $screenerQuestions);
 
         if (!eval(Hooks::get('JO_ON_EDIT_POST'))) return;
 
@@ -1514,6 +1551,12 @@ class JobOrdersUI extends UserInterface
             $allowEventReminders = false;
         }
 
+        /* Load lifecycle data for stage/substatus picker. */
+        include_once(LEGACY_ROOT . '/lib/Lifecycle.php');
+        $lifecycle = new Lifecycle($this->_siteID);
+        $stagesRS = $lifecycle->getStages();
+        $allSubstatusesGrouped = $lifecycle->getAllSubstatusesGrouped();
+
         $this->_template->assign('candidateID', $candidateID);
         $this->_template->assign('pipelineData', $pipelineData);
         $this->_template->assign('statusRS', $statusRS);
@@ -1527,6 +1570,8 @@ class JobOrdersUI extends UserInterface
         $this->_template->assign('emailDisabled', $emailDisabled);
         $this->_template->assign('isFinishedMode', false);
         $this->_template->assign('isJobOrdersMode', true);
+        $this->_template->assign('stagesRS', $stagesRS);
+        $this->_template->assign('allSubstatusesGrouped', $allSubstatusesGrouped);
 
         if (!eval(Hooks::get('JO_ADD_ACTIVITY_CHANGE_STATUS'))) return;
 

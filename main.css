@@ -1377,3 +1377,80 @@ td.contentContainerOld {
 #emailPreview * {
     padding: 5px;
 }
+
+/* Lifecycle Tracker Bar */
+.lifecycle-tracker-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 4px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.lifecycle-stage-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border: 2px solid #ccc;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #fff;
+    color: #333;
+    transition: background-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.lifecycle-stage-pill:hover {
+    opacity: 0.85;
+}
+
+.lifecycle-stage-pill.active {
+    color: #fff;
+}
+
+.lifecycle-stage-pill.lifecycle-show-all {
+    border-color: #666;
+    color: #666;
+    font-style: italic;
+}
+
+.lifecycle-stage-pill.lifecycle-show-all:hover {
+    background-color: #666;
+    color: #fff;
+}
+
+.lifecycle-pill-count {
+    display: inline-block;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    padding: 0 4px;
+}
+
+/* Lifecycle Stage Badge (in pipeline table) */
+.lifecycle-stage-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.lifecycle-substatus-label {
+    font-size: 10px;
+    color: #777;
+    white-space: nowrap;
+}

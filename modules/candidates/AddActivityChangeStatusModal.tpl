@@ -1,10 +1,10 @@
 <?php /* $Id: AddActivityChangeStatusModal.tpl 3799 2007-12-04 17:54:36Z brian $ */ ?>
 <?php if ($this->isJobOrdersMode): ?>
-    <?php TemplateUtility::printModalHeader('Job Orders', array('modules/candidates/activityvalidator.js', 'js/activity.js'), 'Job Orders: Log Activity'); ?>
+    <?php TemplateUtility::printModalHeader('Job Orders', array('modules/candidates/activityvalidator.js', 'js/activity.js', 'js/lifecycle.js'), 'Job Orders: Log Activity'); ?>
 <?php elseif ($this->onlyScheduleEvent): ?>
-    <?php TemplateUtility::printModalHeader('Candidates', array('modules/candidates/activityvalidator.js', 'js/activity.js'), 'Candidates: Schedule Event'); ?>
+    <?php TemplateUtility::printModalHeader('Candidates', array('modules/candidates/activityvalidator.js', 'js/activity.js', 'js/lifecycle.js'), 'Candidates: Schedule Event'); ?>
 <?php else: ?>
-    <?php TemplateUtility::printModalHeader('Candidates', array('modules/candidates/activityvalidator.js', 'js/activity.js'), 'Candidates: Log Activity'); ?>
+    <?php TemplateUtility::printModalHeader('Candidates', array('modules/candidates/activityvalidator.js', 'js/activity.js', 'js/lifecycle.js'), 'Candidates: Log Activity'); ?>
 <?php endif; ?>
 
 <?php if (!$this->isFinishedMode): ?>
@@ -41,6 +41,9 @@
        statusTriggersEmailArray[<?php echo($rowNumber); ?>] = <?php echo($statusData['triggersEmail']); ?>;
     <?php endforeach; ?>
 </script>
+<?php if (isset($this->allSubstatusesGrouped)): ?>
+<script type="text/javascript">LC_initSubstatuses(<?php echo json_encode($this->allSubstatusesGrouped); ?>);</script>
+<?php endif; ?>
 
     <form name="changePipelineStatusForm" id="changePipelineStatusForm" action="<?php echo(CATSUtility::getIndexName()); ?>?m=<?php if ($this->isJobOrdersMode): ?>joborders<?php else: ?>candidates<?php endif; ?>&amp;a=addActivityChangeStatus<?php if ($this->onlyScheduleEvent): ?>&amp;onlyScheduleEvent=true<?php endif; ?>" method="post" onsubmit="return checkActivityForm(document.changePipelineStatusForm);" autocomplete="off">
         <input type="hidden" name="postback" id="postback" value="postback" />
@@ -100,6 +103,33 @@
                     </div>
                 </td>
             </tr>
+
+            <?php if (isset($this->stagesRS) && !empty($this->stagesRS)): ?>
+            <tr id="lifecycleTR" <?php if ($this->onlyScheduleEvent): ?>style="display:none;"<?php endif; ?>>
+                <td class="tdVertical">
+                    <label id="lifecycleLabel" for="changeLifecycleStage">Lifecycle:</label>
+                </td>
+                <td class="tdData">
+                    <input type="checkbox" name="changeLifecycleStage" id="changeLifecycleStage" style="margin-left: 0px" onclick="LC_onChangeLifecycleToggle();"<?php if ($this->selectedJobOrderID == -1 || $this->onlyScheduleEvent): ?> disabled<?php endif; ?> />
+                    <span id="changeLifecycleSpanA"<?php if ($this->selectedJobOrderID == -1): ?> style="color: #aaaaaa;"<?php endif;?>>Change Lifecycle Stage</span><br />
+
+                    <div id="lifecycleDiv" style="display:none; margin-top: 4px;">
+                        <select id="lifecycleStageSelect" name="lifecycleStageSelect" class="inputbox" style="width: 150px;" onchange="LC_onStageChange();" disabled>
+                            <option value="0">(Select a Stage)</option>
+                            <?php foreach ($this->stagesRS as $stageData): ?>
+                                <option value="<?php echo(intval($stageData['stageID'])); ?>"><?php echo(htmlspecialchars($stageData['stageName'])); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <br />
+                        <select id="lifecycleSubstatusSelect" name="lifecycleSubstatusSelect" class="inputbox" style="width: 150px; margin-top: 4px;" onchange="LC_onSubstatusChange();" disabled>
+                            <option value="0">(Select a Stage first)</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="lifecycleStageID" name="lifecycleStageID" value="0" />
+                    <input type="hidden" id="lifecycleSubstatusID" name="lifecycleSubstatusID" value="0" />
+                </td>
+            </tr>
+            <?php endif; ?>
 
             <tr id="sendEmailCheckTR" style="display: none;">
                 <td class="tdVertical">
@@ -279,6 +309,36 @@
     <?php endif; ?>
 
     <?php echo($this->eventHTML); ?>
+
+    <?php if (isset($this->isInterviewEvent) && $this->isInterviewEvent && $this->interviewData): ?>
+        <div id="outlookSyncStatus" style="margin: 8px 0; padding: 6px; background: #f0f0f0; border: 1px solid #ddd;">
+            Syncing interview to Outlook calendar...
+        </div>
+        <script type="text/javascript">
+        (function() {
+            var interviewData = <?php echo json_encode($this->interviewData); ?>;
+            var statusDiv = document.getElementById('outlookSyncStatus');
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/v1/interviews', true);
+            xhr.withCredentials = true;
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== 4) return;
+                if (xhr.status === 201 || xhr.status === 200) {
+                    statusDiv.style.background = '#e6ffe6';
+                    statusDiv.style.borderColor = '#4CAF50';
+                    statusDiv.innerHTML = 'Interview synced to Outlook calendar and notifications sent.';
+                } else {
+                    statusDiv.style.background = '#fff3e0';
+                    statusDiv.style.borderColor = '#ff9800';
+                    statusDiv.innerHTML = 'Interview saved locally. Outlook sync unavailable (connect your calendar in Settings > My Profile).';
+                }
+            };
+            xhr.send(JSON.stringify(interviewData));
+        })();
+        </script>
+    <?php endif; ?>
 
     <?php echo($this->notificationHTML); ?>
 

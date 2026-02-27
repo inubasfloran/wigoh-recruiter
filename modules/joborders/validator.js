@@ -15,9 +15,9 @@ function checkAddForm(form)
     errorMessage += checkTitle();
     errorMessage += checkCompany();
     errorMessage += checkRecruiter();
-    errorMessage += checkCity();
-    errorMessage += checkState();
+    errorMessage += checkLocations();
     errorMessage += checkOpenings();
+    errorMessage += checkScreenerQuestions();
 
     if (errorMessage != '')
     {
@@ -35,11 +35,11 @@ function checkEditForm(form)
     errorMessage += checkTitle();
     errorMessage += checkCompany();
     errorMessage += checkRecruiter();
-    errorMessage += checkCity();
-    errorMessage += checkState();
+    errorMessage += checkLocations();
     errorMessage += checkOpenings();
     errorMessage += checkOpeningsAvailable();
     errorMessage += checkOwner();
+    errorMessage += checkScreenerQuestions();
 
     if (errorMessage != '')
     {
@@ -115,21 +115,61 @@ function checkTitle()
     return errorMessage;
 }
 
-function checkCity()
+function checkLocations()
 {
     var errorMessage = '';
+    var locationsLabel = document.getElementById('locationsLabel');
 
-    fieldValue = document.getElementById('city').value;
-    fieldLabel = document.getElementById('cityLabel');
-    if (fieldValue == '')
+    // Check if LocationEditor is available (multi-location mode)
+    if (typeof LocationEditor !== 'undefined')
     {
-        errorMessage = "    - You must enter a city.\n";
-
-        fieldLabel.style.color = '#ff0000';
+        if (!LocationEditor.validate())
+        {
+            errorMessage = "    - You must add at least one location.\n";
+            if (locationsLabel)
+            {
+                locationsLabel.style.color = '#ff0000';
+            }
+        }
+        else
+        {
+            if (locationsLabel)
+            {
+                locationsLabel.style.color = '#000';
+            }
+        }
     }
     else
     {
-        fieldLabel.style.color = '#000';
+        // Fall back to legacy city/state validation
+        errorMessage += checkCity();
+        errorMessage += checkState();
+    }
+
+    return errorMessage;
+}
+
+function checkCity()
+{
+    var errorMessage = '';
+    var cityField = document.getElementById('city');
+    var cityLabel = document.getElementById('cityLabel');
+
+    // Skip validation if using LocationEditor
+    if (typeof LocationEditor !== 'undefined')
+    {
+        return '';
+    }
+
+    if (cityField && cityField.value == '')
+    {
+        errorMessage = "    - You must enter a city.\n";
+
+        if (cityLabel) cityLabel.style.color = '#ff0000';
+    }
+    else
+    {
+        if (cityLabel) cityLabel.style.color = '#000';
     }
 
     return errorMessage;
@@ -138,18 +178,24 @@ function checkCity()
 function checkState()
 {
     var errorMessage = '';
+    var stateField = document.getElementById('state');
+    var stateLabel = document.getElementById('stateLabel');
 
-    fieldValue = document.getElementById('state').value;
-    fieldLabel = document.getElementById('stateLabel');
-    if (fieldValue == '')
+    // Skip validation if using LocationEditor
+    if (typeof LocationEditor !== 'undefined')
+    {
+        return '';
+    }
+
+    if (stateField && stateField.value == '')
     {
         errorMessage = "    - You must enter a state.\n";
 
-        fieldLabel.style.color = '#ff0000';
+        if (stateLabel) stateLabel.style.color = '#ff0000';
     }
     else
     {
-        fieldLabel.style.color = '#000';
+        if (stateLabel) stateLabel.style.color = '#000';
     }
 
     return errorMessage;
@@ -332,6 +378,28 @@ function checkFilename()
     else
     {
         fieldLabel.style.color = '#000';
+    }
+
+    return errorMessage;
+}
+
+function checkScreenerQuestions()
+{
+    var errorMessage = '';
+    var field = document.getElementById('screenerQuestions');
+
+    if (!field || field.value.trim() == '')
+    {
+        return errorMessage;
+    }
+
+    try
+    {
+        JSON.parse(field.value);
+    }
+    catch (e)
+    {
+        errorMessage = "    - Screener Questions must be valid JSON.\n";
     }
 
     return errorMessage;

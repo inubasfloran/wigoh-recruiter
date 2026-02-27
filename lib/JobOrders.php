@@ -47,6 +47,7 @@ include_once(LEGACY_ROOT . '/lib/History.php');
 include_once(LEGACY_ROOT . '/lib/DataGrid.php');
 include_once(LEGACY_ROOT . '/lib/JobOrderTypes.php');
 include_once(LEGACY_ROOT . '/lib/JobOrderStatuses.php');
+include_once(LEGACY_ROOT . '/lib/JobOrderLocations.php');
 
 /**
  *	Job Orders Library
@@ -59,6 +60,7 @@ class JobOrders
     public $_siteID;
 
     public $extraFields;
+    public $locations;
 
 
     public function __construct($siteID)
@@ -66,6 +68,7 @@ class JobOrders
         $this->_siteID = $siteID;
         $this->_db = DatabaseConnection::getInstance();
         $this->extraFields = new ExtraFields($siteID, DATA_ITEM_JOBORDER);
+        $this->locations = new JobOrderLocations($siteID);
     }
 
 
@@ -89,12 +92,15 @@ class JobOrders
      * @param integer entered-by user
      * @param integer recruiter user
      * @param integer owner user
+     * @param string department
+     * @param mixed questionnaire
+     * @param string locationsJSON JSON array of locations (optional)
      * @return new job order ID, or -1 on failure.
      */
     public function add($title, $companyId, $contactId, $description, $notes,
         $duration, $maxRate, $type, $isHot, $public, $openings, $companyJobId,
         $salary, $city, $state, $startDate, $enteredBy, $recruiter, $owner,
-        $department, $questionnaire = false)
+        $department, $questionnaire = false, $locationsJSON = '')
     {
         /* Get the department ID of the selected department. */
         // FIXME: Move this up to the UserInterface level. I don't like this
@@ -133,6 +139,19 @@ class JobOrders
         } catch (JobOrderRepositoryException $e) {
             return -1;
         }
+
+        /* Handle multi-location support */
+        if (!empty($locationsJSON))
+        {
+            $this->locations->setFromJSON($jobOrderId, $locationsJSON);
+        }
+        else if (!empty($city) || !empty($state))
+        {
+            /* Backwards compatibility: if no locations JSON provided but city/state exist,
+               add them as the primary location */
+            $this->locations->add($jobOrderId, $city, $state, true);
+        }
+
         return $jobOrderId;
     }
 
@@ -158,12 +177,18 @@ class JobOrders
      * @param string status
      * @param integer recruiter user
      * @param integer owner user
+     * @param boolean public
+     * @param string email
+     * @param string emailAddress
+     * @param string department
+     * @param mixed questionnaire
+     * @param string locationsJSON JSON array of locations (optional)
      * @return boolean True if successful; false otherwise.
      */
     public function update($jobOrderID, $title, $companyJobID, $companyID,
         $contactID, $description, $notes, $duration, $maxRate, $type, $isHot,
         $openings, $openingsAvailable, $salary, $city, $state, $startDate, $status, $recruiter,
-        $owner, $public, $email, $emailAddress, $department, $questionnaire = false)
+        $owner, $public, $email, $emailAddress, $department, $questionnaire = false, $locationsJSON = '')
     {
         /* Get the department ID of the selected department. */
         // FIXME: Move this up to the UserInterface level. I don't like this
@@ -260,6 +285,12 @@ class JobOrders
             );
         }
 
+        /* Handle multi-location support */
+        if (!empty($locationsJSON))
+        {
+            $this->locations->setFromJSON($jobOrderID, $locationsJSON);
+        }
+
         return true;
     }
 
@@ -283,6 +314,9 @@ class JobOrders
             $this->_siteID
         );
         $this->_db->query($sql);
+
+        /* Delete job order locations. */
+        $this->locations->deleteByJobOrderID($jobOrderID);
 
         /* Store history. */
         $history = new History($this->_siteID);
@@ -396,6 +430,7 @@ class JobOrders
                 joborder.owner AS owner,
                 joborder.public AS public,
                 joborder.questionnaire_id as questionnaireID,
+                joborder.screener_questions AS screenerQuestions,
                 joborder.is_admin_hidden AS isAdminHidden,
                 company_department.name AS department,
                 CONCAT(
@@ -473,7 +508,17 @@ class JobOrders
 
         if (!eval(Hooks::get('JO_GET_1_SQL'))) return;
 
-        return $this->_db->getAssoc($sql);
+        $result = $this->_db->getAssoc($sql);
+
+        /* Add locations data */
+        if (!empty($result))
+        {
+            $result['locations'] = $this->locations->getByJobOrderID($jobOrderID);
+            $result['locationsJSON'] = $this->locations->getAsJSON($jobOrderID);
+            $result['locationsDisplay'] = $this->locations->getDisplayString($jobOrderID);
+        }
+
+        return $result;
     }
 
     /**
@@ -510,6 +555,7 @@ class JobOrders
                 joborder.owner AS owner,
                 joborder.public AS public,
                 joborder.questionnaire_id as questionnaireID,
+                joborder.screener_questions AS screenerQuestions,
                 joborder.company_department_id AS departmentID,
                 DATE_FORMAT(
                     joborder.start_date, '%%m-%%d-%%y'
@@ -531,6 +577,13 @@ class JobOrders
         if (!eval(Hooks::get('JO_GET_EDIT_SQL'))) return;
 
         $rs = $this->_db->getAssoc($sql);
+
+        /* Add locations data for editing */
+        if (!empty($rs))
+        {
+            $rs['locations'] = $this->locations->getByJobOrderID($jobOrderID);
+            $rs['locationsJSON'] = $this->locations->getAsJSON($jobOrderID);
+        }
 
         return $rs;
     }
@@ -641,6 +694,7 @@ class JobOrders
                 joborder.status AS status,
                 joborder.company_department_id AS departmentID,
                 joborder.questionnaire_id as questionnaireID,
+                joborder.screener_questions AS screenerQuestions,
                 company.company_id AS companyID,
                 company.name AS companyName,
                 company_department.name AS departmentName,
@@ -751,6 +805,63 @@ class JobOrders
         );
 
         return (boolean) $this->_db->query($sql);
+    }
+
+    /**
+     * Sets the screener questions JSON for a job order.
+     *
+     * @param integer job order ID
+     * @param string JSON screener questions (or empty to clear)
+     * @return boolean True if successful; false otherwise.
+     */
+    public function setScreenerQuestions($jobOrderID, $screenerQuestions)
+    {
+        $sql = sprintf(
+            "UPDATE
+                joborder
+            SET
+                screener_questions = %s,
+                date_modified = NOW()
+            WHERE
+                joborder_id = %s
+            AND
+                site_id = %s",
+            empty($screenerQuestions) ? 'NULL' : $this->_db->makeQueryString($screenerQuestions),
+            $this->_db->makeQueryInteger($jobOrderID),
+            $this->_siteID
+        );
+
+        return (boolean) $this->_db->query($sql);
+    }
+
+    /**
+     * Returns the screener questions JSON for a job order.
+     *
+     * @param integer job order ID
+     * @return string|null screener questions JSON or null
+     */
+    public function getScreenerQuestions($jobOrderID)
+    {
+        $sql = sprintf(
+            "SELECT
+                screener_questions
+            FROM
+                joborder
+            WHERE
+                joborder_id = %s
+            AND
+                site_id = %s",
+            $this->_db->makeQueryInteger($jobOrderID),
+            $this->_siteID
+        );
+
+        $rs = $this->_db->getAssoc($sql);
+        if (!empty($rs) && !empty($rs['screener_questions']))
+        {
+            return $rs['screener_questions'];
+        }
+
+        return null;
     }
 
     /**

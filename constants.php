@@ -129,6 +129,18 @@ define('PIPELINE_STATUS_NOTINCONSIDERATION', 650);
 define('PIPELINE_STATUS_CLIENTDECLINED',     700);
 define('PIPELINE_STATUS_PLACED',             800);
 
+/* Lifecycle Stage IDs. */
+define('LIFECYCLE_STAGE_CAPTURE',             1);
+define('LIFECYCLE_STAGE_APPLICATION',         2);
+define('LIFECYCLE_STAGE_ASSESSMENT',          3);
+define('LIFECYCLE_STAGE_FIRST_INTERVIEW',     4);
+define('LIFECYCLE_STAGE_OFFER',               5);
+define('LIFECYCLE_STAGE_ONBOARDING',          6);
+define('LIFECYCLE_STAGE_REJECT',              7);
+define('LIFECYCLE_STAGE_HIRE',                8);
+define('LIFECYCLE_STAGE_ORIENTATION',         9);
+define('LIFECYCLE_STAGE_ORIENTATION_SURVEY',  10);
+
 /* Extra field types. */
 define('EXTRA_FIELD_TEXT',     1);
 define('EXTRA_FIELD_TEXTAREA', 2);

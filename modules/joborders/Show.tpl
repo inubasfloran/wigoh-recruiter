@@ -3,9 +3,9 @@ include_once('./vendor/autoload.php');
 use OpenCATS\UI\QuickActionMenu;
 ?>
 <?php if ($this->isPopup): ?>
-    <?php TemplateUtility::printHeader('Job Order - '.$this->data['title'], array('js/sorttable.js', 'js/match.js', 'js/pipeline.js', 'js/attachment.js')); ?>
+    <?php TemplateUtility::printHeader('Job Order - '.$this->data['title'], array('js/sorttable.js', 'js/match.js', 'js/pipeline.js', 'js/lifecycle.js', 'js/attachment.js')); ?>
 <?php else: ?>
-    <?php TemplateUtility::printHeader('Job Order - '.$this->data['title'], array( 'js/sorttable.js', 'js/match.js', 'js/pipeline.js', 'js/attachment.js')); ?>
+    <?php TemplateUtility::printHeader('Job Order - '.$this->data['title'], array( 'js/sorttable.js', 'js/match.js', 'js/pipeline.js', 'js/lifecycle.js', 'js/attachment.js')); ?>
     <?php TemplateUtility::printHeaderBlock(); ?>
     <?php TemplateUtility::printTabs($this->active); ?>
         <div id="main">
@@ -107,8 +107,32 @@ use OpenCATS\UI\QuickActionMenu;
                             <!-- /CONTACT INFO -->
 
                             <tr>
-                                <td class="vertical">Location:</td>
-                                <td class="data"><?php $this->_($this->data['cityAndState']); ?></td>
+                                <td class="vertical">Location(s):</td>
+                                <td class="data">
+                                    <?php if (isset($this->data['locations']) && is_array($this->data['locations']) && count($this->data['locations']) > 0): ?>
+                                        <?php foreach ($this->data['locations'] as $index => $location): ?>
+                                            <?php
+                                            $locationStr = '';
+                                            if (!empty($location['city']) && !empty($location['state'])) {
+                                                $locationStr = htmlspecialchars($location['city']) . ', ' . htmlspecialchars($location['state']);
+                                            } else if (!empty($location['city'])) {
+                                                $locationStr = htmlspecialchars($location['city']);
+                                            } else if (!empty($location['state'])) {
+                                                $locationStr = htmlspecialchars($location['state']);
+                                            }
+                                            ?>
+                                            <?php if (!empty($locationStr)): ?>
+                                                <?php echo $locationStr; ?>
+                                                <?php if ($location['isPrimary']): ?>
+                                                    <span style="color: #666; font-size: 11px;">(Primary)</span>
+                                                <?php endif; ?>
+                                                <br />
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <?php $this->_($this->data['cityAndState']); ?>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
 
                             <tr>
@@ -227,6 +251,10 @@ use OpenCATS\UI\QuickActionMenu;
                     <?php else: ?>
                         Questionnaires.
                     <?php endif; ?>
+                <?php endif; ?>
+
+                <?php if (!empty($this->data['screenerQuestions'])): ?>
+                    <br />Indeed Apply screener questions are configured for this job order.
                 <?php endif; ?>
             </div>
             <?php endif; ?>

@@ -1,5 +1,5 @@
 <?php /* $Id: Edit.tpl 3810 2007-12-05 19:13:25Z brian $ */ ?>
-<?php TemplateUtility::printHeader('Job Orders', array('modules/joborders/validator.js', 'js/company.js', 'js/sweetTitles.js',  'js/suggest.js', 'js/joborder.js', 'js/lib.js', 'js/listEditor.js', 'vendor/ckeditor/ckeditor/ckeditor.js', 'js/ckeditor-manager.js')); ?>
+<?php TemplateUtility::printHeader('Job Orders', array('modules/joborders/validator.js', 'js/company.js', 'js/sweetTitles.js',  'js/suggest.js', 'js/joborder.js', 'js/lib.js', 'js/listEditor.js', 'js/locationEditor.js', 'vendor/ckeditor/ckeditor/ckeditor.js', 'js/ckeditor-manager.js')); ?>
 <?php TemplateUtility::printHeaderBlock(); ?>
 <?php TemplateUtility::printTabs($this->active); ?>
     <div id="main">
@@ -156,26 +156,37 @@
 
                     <tr>
                         <td class="tdVertical">
-                            <label id="cityLabel" for="city">City:</label>
+                            <label id="locationsLabel">Location(s):</label>
                         </td>
-                        <td class="tdData">
-                            <input type="text" tabindex="4" class="inputbox" id="city" name="city" value="<?php $this->_($this->data['city']); ?>" style="width: 150px;" />&nbsp;*
-                        </td>
+                        <td class="tdData" colspan="3">
+                            <!-- Hidden fields for legacy compatibility and location data -->
+                            <input type="hidden" id="city" name="city" value="<?php $this->_($this->data['city']); ?>" />
+                            <input type="hidden" id="state" name="state" value="<?php $this->_($this->data['state']); ?>" />
+                            <input type="hidden" id="locationsJSON" name="locationsJSON" value="" />
 
-                        <td class="tdVertical">
-                            <label id="openingsLabel" for="openings">Total Openings:</label>
-                        </td>
-                        <td class="tdData">
-                            <input type="text" tabindex="16" class="inputbox" id="openings" name="openings" value="<?php $this->_($this->data['openings']); ?>" style="width: 150px;" />&nbsp;*
+                            <!-- Location list -->
+                            <div id="locationEditorContainer" style="margin-bottom: 10px;">
+                                <div id="locationList" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+
+                                <!-- Add location inputs -->
+                                <div style="margin-top: 5px;">
+                                    <input type="text" id="newLocationCity" class="inputbox" placeholder="City" style="width: 120px;" />
+                                    <input type="text" id="newLocationState" class="inputbox" placeholder="State" style="width: 80px; margin-left: 5px;" />
+                                    <input type="button" value="Add Location" class="button" onclick="LocationEditor.addLocation();" style="margin-left: 5px;" />
+                                </div>
+                                <div style="font-size: 11px; color: #666; margin-top: 3px;">
+                                    First location is the primary location. At least one location is required.
+                                </div>
+                            </div>
                         </td>
                     </tr>
 
                     <tr>
                         <td class="tdVertical">
-                            <label id="stateLabel" for="state">State:</label>
+                            <label id="openingsLabel" for="openings">Total Openings:</label>
                         </td>
                         <td class="tdData">
-                            <input type="text" tabindex="5" class="inputbox" id="state" name="state" value="<?php $this->_($this->data['state']); ?>" style="width: 150px;" />&nbsp;*
+                            <input type="text" tabindex="16" class="inputbox" id="openings" name="openings" value="<?php $this->_($this->data['openings']); ?>" style="width: 150px;" />&nbsp;*
                         </td>
 
                         <td class="tdVertical">
@@ -327,6 +338,20 @@
                         </td>
                         <?php endif; ?>
                     </tr>
+
+                    <tr id="displayScreenerQuestions" style="<?php if ($this->isPublic): ?>display: table-row;<?php else: ?>display: none;<?php endif; ?>">
+                        <td class="tdVertical">
+                            <label for="screenerQuestions">Indeed Screener Questions:</label>
+                        </td>
+                        <td class="tdData">
+                            <textarea name="screenerQuestions" id="screenerQuestions" rows="10" style="width: 500px; font-family: monospace; font-size: 12px;"><?php if (isset($this->data['screenerQuestions'])): ?><?php echo htmlspecialchars($this->data['screenerQuestions']); ?><?php endif; ?></textarea>
+                            <br />
+                            <span style="font-size: 11px; color: #666;">
+                                JSON format for Indeed Apply screener questions.
+                                <a href="javascript:void(0);" onclick="document.getElementById('screenerQuestions').value = JSON.stringify({schemaVersion:'1.0',screenerQuestions:[{id:'willing_to_relocate',type:'select',question:'Are you willing to relocate?',required:true,options:[{id:'yes',label:'Yes'},{id:'no',label:'No'}]},{id:'years_experience',type:'text',format:'integer',question:'How many years of experience do you have?',required:true,min:'0',max:'99'}]}, null, 2);">Insert template</a>
+                            </span>
+                        </td>
+                    </tr>
                 </table>
                 <input type="submit" tabindex="22" class="button" name="submit" id="submit" value="Save" />&nbsp;
                 <input type="reset"  tabindex="23" class="button" name="reset"  id="reset"  value="Reset" />&nbsp;
@@ -339,6 +364,13 @@
 
             <script type="text/javascript">
                 document.editJobOrderForm.title.focus();
+
+                // Initialize location editor with existing locations
+                <?php if (isset($this->data['locationsJSON']) && !empty($this->data['locationsJSON'])): ?>
+                    LocationEditor.init(<?php echo $this->data['locationsJSON']; ?>, '', '');
+                <?php else: ?>
+                    LocationEditor.init([], '<?php $this->_($this->data['city']); ?>', '<?php $this->_($this->data['state']); ?>');
+                <?php endif; ?>
             </script>
         </div>
     </div>

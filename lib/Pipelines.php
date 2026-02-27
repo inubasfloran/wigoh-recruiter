@@ -496,7 +496,12 @@ class Pipelines
                 owner_user.first_name AS ownerFirstName,
                 owner_user.last_name AS ownerLastName,
                 added_user.first_name AS addedByFirstName,
-                added_user.last_name AS addedByLastName
+                added_user.last_name AS addedByLastName,
+                candidate_joborder.lifecycle_stage_id AS lifecycleStageID,
+                candidate_joborder.lifecycle_substatus_id AS lifecycleSubstatusID,
+                IFNULL(cls.stage_name, '') AS lifecycleStageName,
+                IFNULL(cls.color_hex, '') AS lifecycleStageColor,
+                IFNULL(clsub.substatus_name, '') AS lifecycleSubstatusName
             FROM
                 candidate_joborder
             INNER JOIN candidate
@@ -511,6 +516,10 @@ class Pipelines
                 ON candidate_joborder.added_by = added_user.user_id
             INNER JOIN candidate_joborder_status
                 ON candidate_joborder.status = candidate_joborder_status.candidate_joborder_status_id
+            LEFT JOIN candidate_lifecycle_stage cls
+                ON candidate_joborder.lifecycle_stage_id = cls.stage_id
+            LEFT JOIN candidate_lifecycle_substatus clsub
+                ON candidate_joborder.lifecycle_substatus_id = clsub.substatus_id
             WHERE
                 candidate.candidate_id = %s
             AND
@@ -606,7 +615,12 @@ class Pipelines
                         site_id = %s
                 ) >= 1, 1, 0) AS submitted,
                 added_user.first_name AS addedByFirstName,
-                added_user.last_name AS addedByLastName
+                added_user.last_name AS addedByLastName,
+                candidate_joborder.lifecycle_stage_id AS lifecycleStageID,
+                candidate_joborder.lifecycle_substatus_id AS lifecycleSubstatusID,
+                IFNULL(cls.stage_name, '') AS lifecycleStageName,
+                IFNULL(cls.color_hex, '') AS lifecycleStageColor,
+                IFNULL(clsub.substatus_name, '') AS lifecycleSubstatusName
             FROM
                 candidate_joborder
             LEFT JOIN candidate
@@ -621,6 +635,10 @@ class Pipelines
                 ON candidate_joborder.status = candidate_joborder_status.candidate_joborder_status_id
             LEFT JOIN candidate_duplicates
                 ON candidate_duplicates.new_candidate_id = candidate.candidate_id
+            LEFT JOIN candidate_lifecycle_stage cls
+                ON candidate_joborder.lifecycle_stage_id = cls.stage_id
+            LEFT JOIN candidate_lifecycle_substatus clsub
+                ON candidate_joborder.lifecycle_substatus_id = clsub.substatus_id
             WHERE
                 candidate_joborder.joborder_id = %s
             AND

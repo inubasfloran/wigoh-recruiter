@@ -83,6 +83,9 @@ function PipelineJobOrder_populate(joborderID, page, entriesPerPage, sortBy,
     POSTData += '&sortDirection=' + urlEncode(sortDirection);
     POSTData += '&indexFile=' + urlEncode(indexFile);
     POSTData += '&isPopup=' + urlEncode(isPopup);
+    if (typeof _stageFilter !== 'undefined' && _stageFilter > 0) {
+        POSTData += '&stageFilter=' + _stageFilter;
+    }
 
     document.getElementById(indicatorID).style.display = '';
 

@@ -255,7 +255,7 @@ class XmlUI extends UserInterface
                         case 'hiringCompany':
                             $txtJobPosting = XmlTemplate::replaceTemplateTags(
                                 $tag,
-                                'CATS (www.catsone.com)',
+                                $row['companyName'],
                                 $txtJobPosting
                             );
                             break;
@@ -312,6 +312,68 @@ class XmlUI extends UserInterface
                             $txtJobPosting = XmlTemplate::replaceTemplateTags(
                                 $tag,
                                 $row['type'],
+                                $txtJobPosting
+                            );
+                            break;
+
+                        case 'salary':
+                            $txtJobPosting = XmlTemplate::replaceTemplateTags(
+                                $tag,
+                                isset($row['salary']) ? $row['salary'] : '',
+                                $txtJobPosting
+                            );
+                            break;
+
+                        case 'indeedApiToken':
+                            $txtJobPosting = XmlTemplate::replaceTemplateTags(
+                                $tag,
+                                defined('INDEED_API_TOKEN') ? INDEED_API_TOKEN : '',
+                                $txtJobPosting
+                            );
+                            break;
+
+                        case 'indeedPostUrl':
+                            $txtJobPosting = XmlTemplate::replaceTemplateTags(
+                                $tag,
+                                defined('INDEED_POST_URL') ? INDEED_POST_URL : '',
+                                $txtJobPosting
+                            );
+                            break;
+
+                        case 'jobTitleEncoded':
+                            $txtJobPosting = XmlTemplate::replaceTemplateTags(
+                                $tag,
+                                urlencode($row['title']),
+                                $txtJobPosting
+                            );
+                            break;
+
+                        case 'hiringCompanyEncoded':
+                            $txtJobPosting = XmlTemplate::replaceTemplateTags(
+                                $tag,
+                                urlencode($row['companyName']),
+                                $txtJobPosting
+                            );
+                            break;
+
+                        case 'jobLocationEncoded':
+                            $location = trim($row['city'] . ', ' . $row['state']);
+                            $txtJobPosting = XmlTemplate::replaceTemplateTags(
+                                $tag,
+                                urlencode($location),
+                                $txtJobPosting
+                            );
+                            break;
+
+                        case 'indeedQuestionsUrl':
+                            $questionsUri = sprintf(
+                                "%scareers/?p=indeedQuestions&ID=%d",
+                                $url,
+                                $row['jobOrderID']
+                            );
+                            $txtJobPosting = XmlTemplate::replaceTemplateTags(
+                                $tag,
+                                urlencode($questionsUri),
                                 $txtJobPosting
                             );
                             break;

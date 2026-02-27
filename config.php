@@ -173,6 +173,10 @@ define('FORGOT_PASSWORD_FROM_NAME', 'CATS');
 define('FORGOT_PASSWORD_SUBJECT',   'CATS - Password Retrieval Request');
 define('FORGOT_PASSWORD_BODY',      'You recently requested that your OpenCATS: Applicant Tracking System password be sent to you. Your current password is %s.');
 
+/* Indeed Apply Integration */
+define('INDEED_API_TOKEN', getenv('INDEED_API_TOKEN') ?: '');
+define('INDEED_POST_URL', getenv('INDEED_POST_URL') ?: '');
+
 /* Is this a demo site? */
 define('ENABLE_DEMO_MODE', false);
 

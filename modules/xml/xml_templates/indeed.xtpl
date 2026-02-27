@@ -1,11 +1,12 @@
-# This is Indeed.com's XML export template to be used when automatically
-# adding jobs to their database from OPENCATS' career portal site.
+# Indeed.com XML export template with Indeed Apply integration.
+# Jobs exported via this template will appear on Indeed with an
+# "Apply" button that sends applications to the gateway webhook.
 
 >>header
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <source>
-<publisher>OPENCATS Applicant Tracking System</publisher>
-<publisherurl>http://www.opencats.org</publisherurl>
+<publisher>Wigoh Recruiter</publisher>
+<publisherurl>https://www.wigoh.com</publisherurl>
 <lastBuildDate>$[date]</lastBuildDate>
 <<header
 
@@ -13,7 +14,7 @@
 <job>
 <title><![CDATA[$[jobTitle]]]></title>
 <date><![CDATA[$[jobPostDate]]]></date>
-<referencenumber><![CDATA[$[jobID]]]></referencenumber>
+<referencenumber><![CDATA[$[jobOrderID]]]></referencenumber>
 <url><![CDATA[$[jobURL]]]></url>
 <company><![CDATA[$[hiringCompany]]]></company>
 <city><![CDATA[$[jobCity]]]></city>
@@ -21,6 +22,9 @@
 <country><![CDATA[$[jobCountry]]]></country>
 <postalcode><![CDATA[$[jobZipCode]]]></postalcode>
 <description><![CDATA[$[jobDescription]]]></description>
+<salary><![CDATA[$[salary]]]></salary>
+<jobtype><![CDATA[$[type]]]></jobtype>
+<indeed-apply-data><![CDATA[indeed-apply-apiToken=$[indeedApiToken]&indeed-apply-jobTitle=$[jobTitleEncoded]&indeed-apply-jobId=$[jobOrderID]&indeed-apply-jobCompanyName=$[hiringCompanyEncoded]&indeed-apply-jobLocation=$[jobLocationEncoded]&indeed-apply-jobUrl=$[jobURL]&indeed-apply-postUrl=$[indeedPostUrl]&indeed-apply-questions=$[indeedQuestionsUrl]]]></indeed-apply-data>
 </job>
 <<job
 

@@ -1753,6 +1753,12 @@ class CandidatesUI extends UserInterface
             $allowEventReminders = false;
         }
 
+        /* Load lifecycle data for stage/substatus picker. */
+        include_once(LEGACY_ROOT . '/lib/Lifecycle.php');
+        $lifecycle = new Lifecycle($this->_siteID);
+        $stagesRS = $lifecycle->getStages();
+        $allSubstatusesGrouped = $lifecycle->getAllSubstatusesGrouped();
+
         $this->_template->assign('candidateID', $candidateID);
         $this->_template->assign('pipelineRS', $pipelineRS);
         $this->_template->assign('statusRS', $statusRS);
@@ -1766,6 +1772,8 @@ class CandidatesUI extends UserInterface
         $this->_template->assign('emailDisabled', $emailDisabled);
         $this->_template->assign('isFinishedMode', false);
         $this->_template->assign('isJobOrdersMode', false);
+        $this->_template->assign('stagesRS', $stagesRS);
+        $this->_template->assign('allSubstatusesGrouped', $allSubstatusesGrouped);
         $this->_template->display(
             './modules/candidates/AddActivityChangeStatusModal.tpl'
         );
@@ -3085,6 +3093,19 @@ class CandidatesUI extends UserInterface
                 $candidateID, $regardingID, $statusID, $email, $customMessage
             );
 
+            /* Handle lifecycle stage/substatus change if provided. */
+            $lifecycleStageID = isset($_POST['lifecycleStageID']) ? intval($_POST['lifecycleStageID']) : 0;
+            $lifecycleSubstatusID = isset($_POST['lifecycleSubstatusID']) ? intval($_POST['lifecycleSubstatusID']) : 0;
+            if ($lifecycleStageID > 0 && $lifecycleSubstatusID > 0)
+            {
+                include_once(LEGACY_ROOT . '/lib/Lifecycle.php');
+                $lifecycle = new Lifecycle($this->_siteID);
+                $lifecycle->setStageStatus(
+                    $candidateID, $regardingID, $lifecycleStageID,
+                    $lifecycleSubstatusID, $this->_userID
+                );
+            }
+
             /* If status = placed, and open positions > 0, reduce number of open positions by one. */
             if ($statusID == PIPELINE_STATUS_PLACED && is_numeric($data['openingsAvailable']) && $data['openingsAvailable'] > 0)
             {
@@ -3252,6 +3273,30 @@ class CandidatesUI extends UserInterface
 
             );
             $eventScheduled = true;
+
+            /* If this is an Interview event, prepare data for gateway API call. */
+            $isInterviewEvent = (intval($eventTypeID) == CALENDAR_EVENT_INTERVIEW);
+            if ($isInterviewEvent)
+            {
+                $candidates = new Candidates($this->_siteID);
+                $candidateInfo = $candidates->get($candidateID);
+
+                $interviewData = array(
+                    'candidate_id'        => intval($candidateID),
+                    'candidate_name'      => trim($candidateInfo['firstName'] . ' ' . $candidateInfo['lastName']),
+                    'candidate_email'     => isset($candidateInfo['email1']) ? $candidateInfo['email1'] : '',
+                    'candidate_phone'     => isset($candidateInfo['phoneCell']) ? $candidateInfo['phoneCell'] : (isset($candidateInfo['phoneHome']) ? $candidateInfo['phoneHome'] : ''),
+                    'job_order_id'        => intval($eventJobOrderID),
+                    'job_title'           => $title,
+                    'interviewer_user_id' => $_SESSION['CATS']->getUsername(),
+                    'interviewer_name'    => $_SESSION['CATS']->getFullName(),
+                    'interviewer_email'   => $_SESSION['CATS']->getEmail(),
+                    'scheduled_at'        => date('c', strtotime($date)),
+                    'duration_minutes'    => intval($duration),
+                    'location'            => '',
+                    'notes'               => $description,
+                );
+            }
         }
         else
         {
@@ -3294,6 +3339,8 @@ class CandidatesUI extends UserInterface
         $this->_template->assign('changesMade', $changesMade);
         $this->_template->assign('isFinishedMode', true);
         $this->_template->assign('isJobOrdersMode', $isJobOrdersMode);
+        $this->_template->assign('isInterviewEvent', isset($isInterviewEvent) ? $isInterviewEvent : false);
+        $this->_template->assign('interviewData', isset($interviewData) ? $interviewData : null);
         $this->_template->display(
             './modules/candidates/AddActivityChangeStatusModal.tpl'
         );

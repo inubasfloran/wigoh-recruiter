@@ -514,6 +514,13 @@ class CandidatesUI extends UserInterface
             nl2br(htmlspecialchars($data['notes'], ENT_QUOTES))
         );
 
+        /* Auto-link URLs in notes */
+        $data['notes'] = preg_replace(
+            '/(https?:\/\/[^\s<]+)/',
+            '<a href="$1" target="_blank">$1</a>',
+            $data['notes']
+        );
+
         /* Chop $data['notes'] to make $data['shortNotes']. */
         if (strlen($data['notes']) > self::NOTES_MAXLEN)
         {
